@@ -1,0 +1,180 @@
+{
+  "provider": "ollama",
+  "totals": {
+    "routing": 0.9166666666666666,
+    "specialists": 0.9166666666666666,
+    "deadline": 0.8333333333333334,
+    "outcome": 0.9166666666666666,
+    "idempotent": 1.0
+  },
+  "results": [
+    {
+      "routing": true,
+      "specialists": true,
+      "deadline": true,
+      "outcome": true,
+      "idempotent": true,
+      "ms": 2167,
+      "got": {
+        "event_type": "birth_adoption",
+        "deadline": "2026-12-01",
+        "status": "executed"
+      },
+      "id": "birth-01"
+    },
+    {
+      "routing": true,
+      "specialists": true,
+      "deadline": true,
+      "outcome": true,
+      "idempotent": true,
+      "ms": 2148,
+      "got": {
+        "event_type": "birth_adoption",
+        "deadline": "2026-11-14",
+        "status": "executed"
+      },
+      "id": "adopt-01"
+    },
+    {
+      "routing": true,
+      "specialists": true,
+      "deadline": true,
+      "outcome": true,
+      "idempotent": true,
+      "ms": 1934,
+      "got": {
+        "event_type": "marriage",
+        "deadline": "2026-11-19",
+        "status": "executed"
+      },
+      "id": "marriage-01"
+    },
+    {
+      "routing": true,
+      "specialists": true,
+      "deadline": true,
+      "outcome": true,
+      "idempotent": true,
+      "ms": 2133,
+      "got": {
+        "event_type": "divorce",
+        "deadline": "2026-12-02",
+        "status": "executed"
+      },
+      "id": "divorce-01"
+    },
+    {
+      "routing": false,
+      "specialists": false,
+      "deadline": false,
+      "outcome": false,
+      "idempotent": null,
+      "ms": 2128,
+      "got": {
+        "event_type": "unknown",
+        "deadline": null,
+        "status": "escalated"
+      },
+      "id": "relocation-01"
+    },
+    {
+      "routing": true,
+      "specialists": true,
+      "deadline": true,
+      "outcome": true,
+      "idempotent": true,
+      "ms": 2083,
+      "got": {
+        "event_type": "medical_leave",
+        "deadline": "2026-12-31",
+        "status": "executed"
+      },
+      "id": "medical-01"
+    },
+    {
+      "routing": true,
+      "specialists": true,
+      "deadline": true,
+      "outcome": true,
+      "idempotent": null,
+      "ms": 2037,
+      "got": {
+        "event_type": "birth_adoption",
+        "deadline": "2026-12-03",
+        "status": "rejected"
+      },
+      "id": "reject-01"
+    },
+    {
+      "routing": true,
+      "specialists": true,
+      "deadline": true,
+      "outcome": true,
+      "idempotent": true,
+      "ms": 1937,
+      "got": {
+        "event_type": "marriage",
+        "deadline": "2026-12-01",
+        "status": "executed"
+      },
+      "id": "edit-01"
+    },
+    {
+      "routing": true,
+      "specialists": true,
+      "deadline": true,
+      "outcome": true,
+      "idempotent": null,
+      "ms": 1654,
+      "got": {
+        "event_type": "unknown",
+        "deadline": null,
+        "status": "escalated"
+      },
+      "id": "offtopic-01"
+    },
+    {
+      "routing": true,
+      "specialists": true,
+      "deadline": true,
+      "outcome": true,
+      "idempotent": null,
+      "ms": 1720,
+      "got": {
+        "event_type": "unknown",
+        "deadline": null,
+        "status": "escalated"
+      },
+      "id": "ambiguous-01"
+    },
+    {
+      "routing": true,
+      "specialists": true,
+      "deadline": true,
+      "outcome": true,
+      "idempotent": true,
+      "ms": 2476,
+      "got": {
+        "event_type": "birth_adoption",
+        "deadline": "2026-12-02",
+        "status": "executed"
+      },
+      "id": "hard-implicit-birth"
+    },
+    {
+      "routing": true,
+      "specialists": true,
+      "deadline": false,
+      "outcome": true,
+      "idempotent": true,
+      "ms": 2309,
+      "got": {
+        "event_type": "marriage",
+        "deadline": "2026-12-03",
+        "status": "executed"
+      },
+      "id": "hard-relative-date"
+    }
+  ]
+}
