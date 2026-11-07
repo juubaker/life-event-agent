@@ -98,15 +98,21 @@ _SCAN = [
     r"\b(?:last|this past|next|this coming) (?:mon|tues|wednes|thurs|fri|satur|sun)day\b",
     r"\b(?:\d+|a|an|one|two|three|four|five|six|seven|eight|nine|ten) (?:day|week)s? ago\b",
     r"\b(?:" + "|".join(sorted(MONTHS, key=len, reverse=True)) + r")\.? \d{1,2}(?:st|nd|rd|th)?(?:,? \d{4})?\b",
-    r"\b(?:yesterday|today|tomorrow)\b",
+    r"\b(?:yesterday|today|tomorrow|this morning|tonight)\b",
 ]
 
 
-def find_in_text(text: str, today: date) -> date | None:
-    """First resolvable date phrase anywhere in `text`, else None."""
+def scan(text: str, today: date) -> tuple[str, date] | None:
+    """First resolvable date phrase in `text`: (the phrase as written, its date)."""
     low = text.lower()
     for pat in _SCAN:
         for m in re.finditer(pat, low):
             if (d := resolve(m.group(0), today)) is not None:
-                return d
+                return text[m.start():m.end()], d
     return None
+
+
+def find_in_text(text: str, today: date) -> date | None:
+    """First resolvable date phrase anywhere in `text`, else None."""
+    hit = scan(text, today)
+    return hit[1] if hit else None

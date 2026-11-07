@@ -42,8 +42,18 @@ SCENARIOS = Path(__file__).with_name("scenarios.jsonl")
 CHECKS = ["routing", "specialists", "deadline", "outcome", "idempotent"]
 
 
-def run_scenario(graph, sc: dict) -> dict:
-    cfg = {"configurable": {"thread_id": f"eval-{sc['id']}"}}
+def load_scenarios(tag: str | None = None) -> list[dict]:
+    rows = [json.loads(l) for l in SCENARIOS.read_text().splitlines() if l.strip()]
+    return [s for s in rows if not tag or tag in s.get("tags", [])]
+
+
+def passed(r: dict) -> bool:
+    return all(r[c] in (True, None) for c in CHECKS)
+
+
+def run_scenario(graph, sc: dict, run: str = "0") -> dict:
+    # Unique per run: repeated runs in one process must not resume each other.
+    cfg = {"configurable": {"thread_id": f"eval-{run}-{sc['id']}"}}
     exp = sc["expect"]
     t0 = time.perf_counter()
 
@@ -82,8 +92,26 @@ def run_scenario(graph, sc: dict) -> dict:
         "date_text": state["classification"].date_text,
         "deadline": deadline,
         "status": state.get("status"),
+        "message_source": state["plan"].message_source if state.get("plan") else None,
     }
     return res
+
+
+def run_suite(scenarios: list[dict], run: str = "0", on_result=None) -> list[dict]:
+    """Run every scenario once on a fresh graph; never raises per scenario."""
+    graph = build_graph(InMemorySaver(serde=SERDE))
+    results = []
+    for sc in scenarios:
+        try:
+            r = run_scenario(graph, sc, run)
+        except Exception as e:  # one bad scenario shouldn't kill the run
+            r = {c: False for c in CHECKS} | {"ms": 0, "error": f"{type(e).__name__}: {e}"[:200]}
+        r["id"] = sc["id"]
+        r["tags"] = sc.get("tags", [])
+        results.append(r)
+        if on_result:
+            on_result(r)
+    return results
 
 
 def main() -> int:
@@ -94,26 +122,19 @@ def main() -> int:
                     help="exit 1 if overall pass rate is below this (CI gate)")
     args = ap.parse_args()
 
-    scenarios = [json.loads(l) for l in SCENARIOS.read_text().splitlines() if l.strip()]
-    if args.tag:
-        scenarios = [s for s in scenarios if args.tag in s.get("tags", [])]
-
-    graph = build_graph(InMemorySaver(serde=SERDE))
-    results = []
+    scenarios = load_scenarios(args.tag)
     print(f"provider={llm.provider()}  scenarios={len(scenarios)}\n")
     print(f"{'id':<22}" + "".join(f"{c:<12}" for c in CHECKS) + "ms")
-    for sc in scenarios:
-        try:
-            r = run_scenario(graph, sc)
-        except Exception as e:  # one bad scenario shouldn't kill the run
-            r = {c: False for c in CHECKS} | {"ms": 0, "error": f"{type(e).__name__}: {e}"[:200]}
-            print(f"  ! {sc['id']}: {r['error']}")
-        r["id"] = sc["id"]
-        results.append(r)
+
+    def show(r: dict) -> None:
+        if "error" in r:
+            print(f"  ! {r['id']}: {r['error']}")
         cells = "".join(
             f"{('-' if r[c] is None else 'PASS' if r[c] else 'FAIL'):<12}" for c in CHECKS
         )
-        print(f"{sc['id']:<22}{cells}{r['ms']}")
+        print(f"{r['id']:<22}{cells}{r['ms']}")
+
+    results = run_suite(scenarios, on_result=show)
 
     print()
     totals = {}
@@ -121,7 +142,7 @@ def main() -> int:
         vals = [r[c] for r in results if r[c] is not None]
         totals[c] = sum(vals) / len(vals) if vals else 1.0
         print(f"{c:<12} {sum(vals)}/{len(vals)}  ({totals[c]:.0%})")
-    full = sum(all(r[c] in (True, None) for c in CHECKS) for r in results)
+    full = sum(passed(r) for r in results)
     overall = full / len(results) if results else 1.0
     print(f"\nscenarios fully passing: {full}/{len(results)} ({overall:.0%})")
 

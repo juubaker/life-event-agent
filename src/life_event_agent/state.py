@@ -56,6 +56,9 @@ class Plan(BaseModel):
     event_type: EventType
     tasks: list[PlanTask]
     employee_message: str
+    # "llm" = model rewrite that passed the fact check; "template" = built in code
+    message_source: Literal["llm", "template"] = "template"
+    message_note: str = ""  # why a rewrite was rejected, for the HR reviewer
 
 
 class Review(BaseModel):
@@ -71,6 +74,7 @@ class AgentState(TypedDict, total=False):
     employee_id: str
     request: str
     today: str  # ISO date; injected so runs are reproducible in evals
+    received_at: str  # ISO timestamp the request arrived (set by the API)
 
     # classify
     classification: Classification

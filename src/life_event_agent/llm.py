@@ -76,9 +76,14 @@ def _chat_model():
     raise ValueError(f"No chat model for provider {p!r}")
 
 
+def rewrite_model():
+    """Chat model for the message rewrite, or None on the rules provider."""
+    return None if provider() == "rules" else _chat_model()
+
+
 def classify(request: str, today: str) -> Classification:
     if provider() == "rules":
-        return _rules_classify(request)
+        return _rules_classify(request, today)
     # The model never sees TODAY: it only extracts the date phrase, and
     # dates.resolve() does the arithmetic deterministically.
     # json_schema = constrained decoding on both Anthropic and Ollama, so
@@ -115,22 +120,23 @@ _RULES: list[tuple[str, str]] = [
     ("relocation", r"\b(mov(e|ed|ing)|relocat\w*|new (state|address))\b"),
     ("medical_leave", r"\b(surgery|medical leave|fmla|recover\w*|hospital\w*)\b"),
 ]
-_DATE = re.compile(r"\b(\d{4}-\d{2}-\d{2})\b")
 
 
-def _rules_classify(request: str) -> Classification:
+def _rules_classify(request: str, today: str) -> Classification:
     text = request.lower()
     hits = [et for et, pat in _RULES if re.search(pat, text)]
     # divorce beats marriage when both match ("divorced my spouse")
     if "divorce" in hits and "marriage" in hits:
         hits.remove("marriage")
-    iso = (m.group(1) if (m := _DATE.search(request)) else None)
+    # Same deterministic date path as the LLM providers.
+    hit = dates.scan(request, date.fromisoformat(today))
+    phrase, iso = (hit[0], hit[1].isoformat()) if hit else (None, None)
     if len(hits) == 1:
         return Classification(
-            event_type=hits[0], event_date=iso, date_text=iso, confidence=0.9,
+            event_type=hits[0], event_date=iso, date_text=phrase, confidence=0.9,
             rationale=f"keyword match: {hits[0]}",
         )
     return Classification(
-        event_type="unknown", event_date=iso, date_text=iso, confidence=0.3,
+        event_type="unknown", event_date=iso, date_text=phrase, confidence=0.3,
         rationale="no match" if not hits else f"ambiguous: {hits}",
     )

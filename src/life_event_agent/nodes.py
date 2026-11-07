@@ -5,10 +5,12 @@ interrupt re-runs on resume, so keep that part side-effect free.
 """
 from __future__ import annotations
 
+from datetime import date
+
 from langchain_core.runnables import RunnableConfig
 from langgraph.types import interrupt
 
-from . import llm, tools
+from . import llm, message, tools
 from .state import AgentState, Finding, Plan, PlanTask, Review
 
 CONFIDENCE_FLOOR = 0.6
@@ -94,13 +96,22 @@ def plan(state: AgentState) -> AgentState:
                 PlanTask(task_id=f"{f.source}-{i}", title=action, due=f.deadline)
             )
     tasks.append(PlanTask(task_id="hr-0", title="Verify supporting documents", owner="hr"))
-    msg = (
-        f"Here is your checklist for this {c.event_type.replace('_', ' ')} event. "
-        + " ".join(f.summary + "." for f in state.get("findings", []))
+
+    # Facts come from code; the model may only re-word them (message.py).
+    deadline = next((f.deadline for f in state.get("findings", []) if f.deadline), None)
+    draft = message.build_template(
+        c.event_type,
+        today=date.fromisoformat(state["today"]),
+        deadline=date.fromisoformat(deadline) if deadline else None,
+        leave=tools.leave_policy(c.event_type) if "leave" in state.get("specialists", []) else None,
     )
-    # TODO(llm): have the model rewrite `msg` in a warm tone, facts unchanged
-    p = Plan(event_type=c.event_type, tasks=tasks, employee_message=msg)
-    return {"plan": p, "status": "planned", "audit": [f"plan: {len(tasks)} tasks"]}
+    text, source, note = message.rewrite(draft, llm.rewrite_model())
+    p = Plan(event_type=c.event_type, tasks=tasks, employee_message=text,
+             message_source=source, message_note=note)
+    audit = [f"plan: {len(tasks)} tasks, message from {source}"]
+    if note:
+        audit.append(f"plan: {note}")
+    return {"plan": p, "status": "planned", "audit": audit}
 
 
 def human_review(state: AgentState) -> AgentState:
